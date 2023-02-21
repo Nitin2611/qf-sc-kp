@@ -1,0 +1,18 @@
+.slds-color-picker__summary-button{
+    width : 30% !important
+}
+.slds-swatch{
+    width: 6rem !important;
+}
+.slds-color-picker__summary-input{
+    width: 68% !important;
+}
+.slds-color-picker__summary-input .slds-input{
+    width: 100% !important;
+}
+.slds-file-selector__button{
+    width: 63% !important;
+}
+.slds-file-selector__body{
+    width: 19rem !important;
+}
