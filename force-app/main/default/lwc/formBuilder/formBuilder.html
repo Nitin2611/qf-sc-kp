@@ -208,11 +208,11 @@
                                             data-order-id={field.Field_Order__c} data-page-record={field.Form_Page__c}
                                             data-record={field.ParentMessage} data-ref="inner" ondragstart={onDragStart}
                                             data-record-count={fieldcount} onclick={handleid} key={field.ParentMessage}
-                                            data-field-name={field.Name}>
+                                            data-field-name={field.Name} data-field-id={field.Id}>
                                             <c-quickformfieldcomponent formid={ParentMessage} t-view={field.Name}
                                                 compview="Full" disable-field="true" field-attribute=""
                                                 field-attribute-value="" field-id={field.ParentMessage}
-                                                page-id={page.ParentMessage}></c-quickformfieldcomponent>
+                                                page-id={page.ParentMessage} data-field-id={field.Id}></c-quickformfieldcomponent>
 
                                         </div>
                                     </template>

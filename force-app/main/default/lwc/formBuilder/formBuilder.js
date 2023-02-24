@@ -41,6 +41,8 @@ import pageDetails from '@salesforce/apex/FormBuilderController.pageDetails';
 import updatePage from '@salesforce/apex/FormBuilderController.updatePage';
 import editFormSubmit from '@salesforce/apex/FormBuilderController.editFormSubmit';
 
+// Importing Apec Metods
+import reOrderField from '@salesforce/apex/FormBuilderController.reOrderField';
 
 export default class FormBuilder extends NavigationMixin(LightningElement) {
 
@@ -114,6 +116,9 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
     fieldcount = 0;
     removeObjFields = [];
 
+    @track isReorderingDrag = false;
+    @track startFielId = '';
+
     renderedCallback() {
         console.log('inside the renderedcallBack--->>>');
         console.log(this.removeObjFields.length);
@@ -151,12 +156,12 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
                 let str = this.getFieldCSS;
                 for (let i = 0; i < array.length; i++) {
                     const element = array[i];
-                    console.log(i + '--' + element);
+                    console.log(i + '*--*' + element);
                     element.style = str;
                 }
                 this.spinnerDataTable = false;
             }).catch(error => {
-                console.log({ error });
+                console.log('***In Catch block of getPageCSS ==>',{ error });
                 this.spinnerDataTable = false;
             })
 
@@ -326,6 +331,7 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
                 console.log('get form page called');
                 this.PageList = result;
                 console.log('this-->>');
+                console.log('*** pageList ==>', result);
                 console.log(this.PageList[0].Name);
                 console.log(this.PageList.length);
 
@@ -335,6 +341,7 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
         getFieldsRecords({ id: this.ParentMessage })
             .then(result => {
                 console.log('whyyyy');
+                console.log('*** FieldList ==>', result);
                 this.FieldList = result;
                 this.setPageField(result);
 
@@ -484,10 +491,16 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
     dragLeave() {
 
     }
+
     onDragOver(event) {
-        var dropzone = this.template.querySelector('.example-dropzone');
-        dropzone.style = "opacity:1.0";
-        event.preventDefault();
+        try {
+            var dropzone = this.template.querySelector('.example-dropzone');
+            dropzone.style = "opacity:1.0";
+            event.preventDefault();
+        } catch (error) {
+            console.log("In the catch block ==> Method :** onDragOver ** || LWC:** formBuilder ** ==>", { error });
+            console.log('above error ==>' + error);
+        }
     }
 
     /***************************************************************
@@ -498,20 +511,33 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
      ***************************************************************/
     onDragStart(event) {
         try {
+            this.isReorderingDrag = true;
+
             var DraggedLabel = event.target.dataset.record;
             var classname = event.target.className;
             var pageId = event.target.dataset.pageRecord;
+            this.startFielId = event.target.dataset.fieldId;
             var SenddataObj = { record: DraggedLabel, type: classname, PageId: pageId };
-            console.log(DraggedLabel);
+
+            console.log('*** DragLabel ==>' + DraggedLabel);
+            console.log('*** classname ==>' + classname);
+            console.log('*** pageId ==>' + pageId);
+            console.log('*** startFielId ==>' + this.startFielId);
+            console.log('*** SenddataObj ==>' + JSON.stringify(SenddataObj));
+            console.log('event.target.dataset JSON==>', JSON.stringify(event.target.dataset));
+            console.log('event.target.dataset ==>' , event.target.dataset);
+            console.log('evenet ==>', event.target);
             console.log('On drag start-->');
 
-            if (DraggedLabel == null) {
-                onDragOver();
-            } else {
-                console.log('in else condition');
-                //console.log(JSON.stringify(event.target.dataset));
-                event.dataTransfer.setData('text/plain', JSON.stringify(SenddataObj));
-            }
+            // if (DraggedLabel == null) {
+            //     this.onDragOver();
+            // } else {
+            //     console.log('in else condition');
+            //     event.dataTransfer.setData('text/plain', JSON.stringify(SenddataObj));
+            // }
+            
+            event.dataTransfer.setData('text/plain', JSON.stringify(event.target.dataset));
+
         } catch (error) {
             console.log("In the catch block ==> Method :** onDragStart ** || LWC:** formBuilder ** ==>", { error });
             console.log('above error ==>' + error);
@@ -519,103 +545,128 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
     }
 
     async onDrop(event) {
-        var dropzone = this.template.querySelectorAll('.example-dropzone');
-        for (let i = 0; i < dropzone.length; i++) {
-            let field = dropzone[i].querySelectorAll('.field');
-            if (field.length == 0) { dropzone[i].style = "opacity:1.0;background-image:none;height:auto"; }
-            else {
-                dropzone[i].style = "opacity:1.0";
-            }
-        }
 
-        console.log('ondrop start -->', dropzone);
-        let Fieldid = event.dataTransfer.getData('text');
-        let FieldLabel = JSON.parse(Fieldid);
-        var classname = event.target.className;
-        var pageIdOfField = '';
-        var PageRecordId = event.target.dataset.pageRecord;
-        var position = 0;
-        var OldFieldSend = false;
-        let fieldLabelOfRemovedFeild = FieldLabel.record;
+        if (this.isReorderingDrag) {
+            this.spinnerDataTable = true;
+            // event.dataTransfer.getData('text/plain', JSON.stringify(event.target.dataset));
+            var dropFieldId = event.target.dataset.fieldId;
 
-        //console.log('Dropzone length' + dropzone.length);
-        console.log(classname);
-        console.log({ FieldLabel });
-        console.log('ondrop start-->');
-        console.log(Fieldid);
-        console.log('parent class->' + event.target.parentElement.className);
+            console.log('*** dropFieldId ==>', dropFieldId);
+            console.log('*** on drop event.target ==>', event.target);
+            console.log('*** dropFieldId JSON==>', JSON.stringify(dropFieldId));
 
-        let isPageBreak = false;
-        let oldfieldId = 'na';
-        console.log('inside the fieldlalbe---->>>>' + FieldLabel.record);
-        if (FieldLabel.record == 'QFPAGEBREAK') {
-            isPageBreak = true;
-        }
-        console.log(isPageBreak);
-        if (classname == 'field') {
-            if (FieldLabel.type == 'field') {
-                OldFieldSend = true;
-                oldfieldId = event.target.dataset.record;
-                pageIdOfField = FieldLabel.PageId;
-                position = event.target.dataset.orderId - 1;
-                console.log(pageIdOfField);
-            }
-            else {
-                position = event.target.dataset.orderId;
-            }
-            console.log('position :- ' + position);
-        }
-
-        if (classname == '') {
-            classname = event.target.parentElement.className;
-            PageRecordId = event.target.parentElement.dataset.pageRecord;
-            if (FieldLabel.type == 'field') {
-                OldFieldSend = true;
-                pageIdOfField = FieldLabel.PageId;
-                console.log(pageIdOfField);
-                console.log(PageRecordId);
-                position = event.target.parentElement.dataset.orderId - 1;
-
-            }
-            else {
-                position = event.target.parentElement.dataset.orderId;
+            reOrderField({ dropFieldId: dropFieldId, currentFieldId: this.startFielId })
+                .then((result) => {
+                    console.log("*** result from apex class ==>" , result);
+                    this.setPageField(result);
+                    
+                })
+                .catch((error) => {
+                    console.log('*** Error From reOrderField ==>');
+                    console.log({ error });
+                    this.spinnerDataTable = false;
+                });
+            this.spinnerDataTable = false;
+            
+        } else {
+            var dropzone = this.template.querySelectorAll('.example-dropzone');
+            for (let i = 0; i < dropzone.length; i++) {
+                let field = dropzone[i].querySelectorAll('.field');
+                if (field.length == 0) { dropzone[i].style = "opacity:1.0;background-image:none;height:auto"; }
+                else {
+                    dropzone[i].style = "opacity:1.0";
+                }
             }
 
+            console.log('ondrop start -->', dropzone);
+            let Fieldid = event.dataTransfer.getData('text');
+            let FieldLabel = JSON.parse(Fieldid);
+            var classname = event.target.className;
+            var pageIdOfField = '';
+            var PageRecordId = event.target.dataset.pageRecord;
+            var position = 0;
+            var OldFieldSend = false;
+            let fieldLabelOfRemovedFeild = FieldLabel.record;
+
+            //console.log('Dropzone length' + dropzone.length);
             console.log(classname);
-        }
+            console.log({ FieldLabel });
+            console.log('ondrop start-->');
+            console.log(Fieldid);
+            console.log('parent class->' + event.target.parentElement.className);
 
-        console.log(event.target.dataset);
-        console.log(PageRecordId);
-        console.log(FieldLabel);
-        console.log(FieldLabel.record);
-        console.log(FieldLabel.type);
-        var FieldName = FieldLabel.record;
+            let isPageBreak = false;
+            let oldfieldId = 'na';
+            console.log('inside the fieldlalbe---->>>>' + FieldLabel.record);
+            if (FieldLabel.record == 'QFPAGEBREAK') {
+                isPageBreak = true;
+            }
+            console.log(isPageBreak);
+            if (classname == 'field') {
+                if (FieldLabel.type == 'field') {
+                    OldFieldSend = true;
+                    oldfieldId = event.target.dataset.record;
+                    pageIdOfField = FieldLabel.PageId;
+                    position = event.target.dataset.orderId - 1;
+                    console.log(pageIdOfField);
+                }
+                else {
+                    position = event.target.dataset.orderId;
+                }
+                console.log('position :- ' + position);
+            }
+
+            if (classname == '') {
+                classname = event.target.parentElement.className;
+                PageRecordId = event.target.parentElement.dataset.pageRecord;
+                if (FieldLabel.type == 'field') {
+                    OldFieldSend = true;
+                    pageIdOfField = FieldLabel.PageId;
+                    console.log(pageIdOfField);
+                    console.log(PageRecordId);
+                    position = event.target.parentElement.dataset.orderId - 1;
+
+                }
+                else {
+                    position = event.target.parentElement.dataset.orderId;
+                }
+
+                console.log(classname);
+            }
+
+            console.log(event.target.dataset);
+            console.log(PageRecordId);
+            console.log(FieldLabel);
+            console.log(FieldLabel.record);
+            console.log(FieldLabel.type);
+            var FieldName = FieldLabel.record;
 
 
-        if (FieldLabel.type != 'Extra' && FieldLabel.type != 'field') {
-            FieldName = FieldName + ',' + FieldLabel.type;
+            if (FieldLabel.type != 'Extra' && FieldLabel.type != 'field') {
+                FieldName = FieldName + ',' + FieldLabel.type;
 
-        }
-        console.log('field label type------->' + FieldLabel.type);
-        if (FieldLabel.type == 'Extra') {
+            }
+            console.log('field label type------->' + FieldLabel.type);
+            if (FieldLabel.type == 'Extra') {
 
-            this.checkCount(FieldName);
-            console.log('get count successfully-->', this.count);
-            FieldName = FieldName + ',' + FieldLabel.type + ',' + this.count;
+                this.checkCount(FieldName);
+                console.log('get count successfully-->', this.count);
+                FieldName = FieldName + ',' + FieldLabel.type + ',' + this.count;
 
 
-            console.log('inside field extra');
+                console.log('inside field extra');
 
-        }
+            }
 
-        var FieldElement = document.querySelectorAll('.field');
-        if (isPageBreak) {
-            await this.makePageBreak(FieldName, PageRecordId, position, oldfieldId);
-        }
-        else {
-            await this.SaveFields(FieldName, PageRecordId, position, OldFieldSend, pageIdOfField, fieldLabelOfRemovedFeild);
+            var FieldElement = document.querySelectorAll('.field');
+            if (isPageBreak) {
+                await this.makePageBreak(FieldName, PageRecordId, position, oldfieldId);
+            } else {
+                await this.SaveFields(FieldName, PageRecordId, position, OldFieldSend, pageIdOfField, fieldLabelOfRemovedFeild);
 
-            console.log('both methods are called and finish');
+                console.log('both methods are called and finish');
+            }
+            
         }
     }
 
@@ -661,11 +712,10 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
         this.template.querySelector("c-fields-section-component").removeField(fieldlabelname);
         console.log('log---------------->' + this.template.querySelector("c-fields-section-component"));
     }
+
     passToParent(event) {
         if (event.detail == true) {
-
             console.log('in pass to parent');
-
             // var dropzone = document.querySelector('div');
             var dropzone = this.template.querySelectorAll('.example-dropzone');
             for (let i = 0; i < dropzone.length; i++) {
@@ -678,15 +728,12 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
                     dropzone[i].style = "background-image: url('/resource/dropHere');background-size: cover;background-repeat: no-repeat;height:120px;";
                     //     dropzone[i].style = "background-size: cover";
                     // dropzone[i].style = "background-repeat: no-repeat";
-
                 }
                 else {
                     dropzone[i].style = "opacity:0.4";
                 }
             }
-
-        }
-        else {
+        } else {
             console.log('else part executed successfully---->');
             var dropzone = this.template.querySelectorAll('.example-dropzone');
             for (let i = 0; i < dropzone.length; i++) {
@@ -705,6 +752,7 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
             }
         }
     }
+
     setPageField(fieldList) {
         console.log('in set PageField');
         let outerlist = [];
@@ -715,15 +763,12 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
             let innerlist = [];
             if (i == 0) {
                 isIndexZero = true;
-            }
-            else if (i == this.PageList.length - 1) {
+            } else if (i == this.PageList.length - 1) {
                 islast = true;
-            }
-            else if (i != this.PageList.length - 1) {
+            } else if (i != this.PageList.length - 1) {
                 isnotlast = true;
             }
             for (let j = 0; j < fieldList.length; j++) {
-
                 if (this.PageList[i].Id == fieldList[j].Form_Page__c) {
                     console.log('inside inner loop');
                     let fieldofObj = fieldList[j].Name.split(',');
@@ -745,17 +790,17 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
             isnotlast = false;
             outerlist.push(temp);
         }
-
         this.MainList = outerlist;
+        console.log('***Main List ==>', JSON.stringify(outerlist));
     }
 
     tempararyfun() {
         for (let i = 0; i < this.removeObjFields.length; i++) {
             console.log('log---------------->' + this.template.querySelector("c-fields-section-component"));
             this.template.querySelector("c-fields-section-component").removeField(this.removeObjFields[i]);
-
         }
     }
+
     checkCount(fieldname) {
         console.log('fieldList--->' + this.FieldList.length);
         let fieldAttributeList = [];
@@ -773,6 +818,7 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
         console.log('after for loop-->');
         this.count = count1;
     }
+
     editPageName(event) {
         this.newFormName = event.currentTarget.dataset.record;
         console.log(event.target.dataset.record);
@@ -804,10 +850,9 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
             }).catch(err => {
                 console.log(err);
             })
-
-
         }
     }
+
     rename(event) {
         console.log('inside on change-->');
         console.log(event.target.value);
@@ -815,13 +860,11 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
     }
 
     cancleRenameForm(event) {
-
         //this.pencheck = false;
         //document.removeEventListener('click', this.outsideClick);
         console.log('inside canleRenameForm');
         this.template.querySelector("div[data-record-id =" + event.currentTarget.dataset.id + "]").style.display = 'block';
         this.template.querySelector("div[data-name =" + event.currentTarget.dataset.id + "]").style.display = 'none';
-
     }
 
     handleeditForm(event) {
@@ -839,22 +882,22 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
                 this.formtitle = this.FormDetails.Name;
                 this.FormName = this.FormDetails.Name;
             }
+
             if (this.FormDetails.hasOwnProperty("Captcha_Type__c")) {
                 console.log(this.FormDetails.Captcha_Type__c);
 
                 this.captchTypeparent = this.FormDetails.Captcha_Type__c;
                 this.template.querySelector('c-captcha-type').preview_chptchatype(this.captchTypeparent);
-            }
-            else {
+            } else {
                 console.log('in none');
                 this.captchTypeparent = 'None';
             }
+
             if (this.FormDetails.hasOwnProperty("Progress_Indicator__c")) {
                 console.log('inside the hasownPorperty');
                 this.Progressbarvalue = this.FormDetails.Progress_Indicator__c;
                 this.template.querySelector('c-progress-indicator').tesmethod(this.Progressbarvalue);
-            }
-            else {
+            } else {
                 this.Progressbarvalue = 'None';
             }
         }).catch(err => {
@@ -936,35 +979,37 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
                 console.log('pagetitle2------------->' + this.pagetitle2);
             }
             if (this.PageDetails.hasOwnProperty("Page_Number__c")) {
-
-
                 this.pagenumber2 = this.PageDetails.Page_Number__c;
                 this.pageeeee = this.PageDetails.Page_Number__c;
                 console.log('pagenumber2------------>' + this.pagenumber2);
-
             }
         }).catch(err => {
             console.log(err);
         })
     }
+
     changePageTitle(event) {
         this.pagetitle = event.target.value;
         console.log('Page Title :- ' + this.pagetitle);
     }
+
     changePageTitle2(event) {
         // this.IdId = event.currentTarget.dataset.id
         this.pagetitle2 = event.target.value;
         console.log('Page Title2 :- ' + this.pagetitle2);
         // console.log('IdId :- '+this.IdId);
     }
+
     changePageNo(event) {
         this.pagenumber = event.target.value;
         console.log('Page Number :- ' + this.pagenumber);
     }
+
     changePageNo2(event) {
         this.pagenumber2 = event.target.value;
         console.log('Page Number2 :- ' + this.pagenumber2);
     }
+
     handleeditPage(event) {
         console.log('page id----------->' + this.IdId);
         console.log('pageTitle2----------->' + this.pagetitle2);
@@ -993,9 +1038,7 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
 
     handleValidation() {
         let nameCmp = this.template.querySelector(".nameCls");
-
         console.log({ nameCmp });
-
 
         if (!nameCmp.value || nameCmp.value.trim().length == 0) {
             console.log('test for form titel');
@@ -1008,6 +1051,7 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
         }
         nameCmp.reportValidity();
     }
+
     handleValidation1() {
         let nameCmp1 = this.template.querySelector(".nameCls1");
         if (!nameCmp1.value || nameCmp1.value.trim().length == 0) {
@@ -1022,6 +1066,7 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
         nameCmp1.reportValidity();
 
     }
+
     handleValidation2() {
         let nameCmp2 = this.template.querySelector(".nameCls2");
         if (!nameCmp2.value || nameCmp2.value.trim().length == 0) {
@@ -1034,8 +1079,8 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
             this.handleeditPage();
         }
         nameCmp2.reportValidity();
-
     }
+
     handlecreatePage() {
         console.log('total pages--------->' + this.PageList.length);
         createPage({ pageNumber: this.pagenumber, totalPages: this.PageList.length, formId: this.ParentMessage, pagename: this.pagetitle }).then(result => {
@@ -1057,17 +1102,19 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
         this.isModalOpen1 = false;
         this.handleModalClose();
     }
+
     handleModalClose() {
         this.pagetitle = '';
         this.pagenumber = null;
     }
+
     closeModal1() {
         this.isModalOpen1 = false;
     }
+
     closeModal2() {
         this.isModalOpen2 = false;
     }
-
 
     deletePage(event) {
         console.log('deleting---------------->' + event.currentTarget.dataset.record);
@@ -1080,12 +1127,12 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
             this.setPageField(result.fieldList);
             if (pagelength) {
                 this.showToast('sorry page can not deleted', 'fail')
-            }
-            else {
+            } else {
                 this.showToast('page Delete successfully');
             }
         })
     }
+
     showToast(title, variant) {
         const event = new ShowToastEvent({
             title: title,
@@ -1125,7 +1172,6 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
         // alert('hiiii :- '+this.formtitle);
     }
 
-
     changeDescription(event) {
         this.description = event.target.value;
         console.log('Form Title :- ' + this.description);
@@ -1139,8 +1185,7 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
                 this.ispreview_show_msg = true;
                 this.pi = false;
                 // console.log('test :- ',event.target.value);
-            }
-            else {
+            } else {
                 console.log('you are in Progressbar component');
                 this.ispreview_show_msg = false;
                 this.pi = true;
@@ -1148,14 +1193,10 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
                 // console.log('test :- ',event.target.value);
                 this.template.querySelector('c-progress-indicator').tesmethod(this.Progressbarvalue);
             }
-
         } catch (error) {
             console.error('check error here', error);
             console.log({ error });
         }
-
-
-
     }
 
     changeCaptchaType(event) {
@@ -1167,8 +1208,7 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
                 this.ct = false;
                 // console.log('test :- ',event.target.value);
                 // this.template.querySelector('c-captcha-type').preview_chptchatype(this.captchTypeparent);
-            }
-            else {
+            } else {
                 console.log('you are in Progressbar component');
                 this.testtest = false;
                 this.ct = true;
@@ -1256,6 +1296,7 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
         // alert('you in close Modal');
         this.isModalOpen = false;
     }
+
     submitDetails() {
         // to close modal set isModalOpen tarck value as false
         //Add your code to call apex method or do some processing
