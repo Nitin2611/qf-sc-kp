@@ -628,35 +628,36 @@ public with sharing class FormBuilderController {
             return nform.Button_CSS__c+nform.Button_Position__c;
         }
 
-        @AuraEnabled
-        public static string getprogressbar(String id){
-            try {
-                Form__c nform = [SELECT Id,Progress_Indicator__c FROM Form__c WHERE Id =: id];
-                return nform.Progress_Indicator__c;
-            } catch (Exception e) {
-                throw new AuraHandledException(e.getMessage());
-            }
+    @AuraEnabled
+    public static string getprogressbar(String id){
+        try {
+            Form__c nform = [SELECT Id,Progress_Indicator__c FROM Form__c WHERE Id =: id];
+            return nform.Progress_Indicator__c;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
         }
-        @AuraEnabled
-        public static string getcaptcha(String id){
-            try {
-                Form__c nform = [SELECT Id, Captcha_Type__c FROM Form__c WHERE Id =: id];
-                return nform.Captcha_Type__c;
-            } catch (Exception e) {
-                throw new AuraHandledException(e.getMessage());
-            }
-        }
+    }
 
+    @AuraEnabled
+    public static string getcaptcha(String id){
+        try {
+            Form__c nform = [SELECT Id, Captcha_Type__c FROM Form__c WHERE Id =: id];
+            return nform.Captcha_Type__c;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
 
     @AuraEnabled
     public static List<Form_Page__c> GetFormPage(String Form_Id){
         try {
             List<Form_Page__c> pageList = [SELECT Id, Name, Page_Number__c FROM Form_Page__c WHERE Form__c=:Form_Id ORDER BY Page_Number__c ASC];
             return pageList;
-     } catch (Exception e) {
-         throw new AuraHandledException(e.getMessage());
-     }
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
     }
+
     public class StylesWrapper{
         @AuraEnabled
         public list<Alignment__mdt> AlignmentProp{get; set;}
@@ -692,162 +693,147 @@ public with sharing class FormBuilderController {
         }
     }
 
-@AuraEnabled
-public static List<Form_Fields__c> CreateFieldRecord(String Form_Id,String Name,String Form_Page_Id,Decimal Position,boolean isold,String Field_Page_Id){
-    try {            
-          
-        System.debug('Form_Id-->'+Form_Id);
-        System.debug('Name-->'+Name);
-        System.debug('Form_Page_Id-->'+Form_Page_Id);
-        System.debug('Position-->'+Position);
-        System.debug('isold-->'+isold);
-        System.debug('Field_Page_Id-->'+Field_Page_Id);
+    @AuraEnabled
+    public static List<Form_Fields__c> CreateFieldRecord(String Form_Id, String Name, String Form_Page_Id, Decimal Position, boolean isold, String Field_Page_Id) {
+        try {            
+            System.debug('Form_Id-->'+Form_Id);
+            System.debug('Name-->'+Name);
+            System.debug('Form_Page_Id-->'+Form_Page_Id);
+            System.debug('Position-->'+Position);
+            System.debug('isold-->'+isold);
+            System.debug('Field_Page_Id-->'+Field_Page_Id);
 
-        Form_Fields__c field = new Form_Fields__c();
-        List<Form_Fields__c> updateList= new List<Form_Fields__c>();
-        
-        List<Form_Fields__c> fieldList=[SELECT Id,Name,Form__c,Form_Page__c,Field_Order__c FROM Form_Fields__c WHERE Form_Page__c=:Form_Page_Id ORDER BY Field_Order__c ASC ];
-         if(Field_Page_Id!=''){
-            Form_Fields__c field_which_page_changed = [SELECT Id,Name,Form__c,Form_Page__c,Field_Order__c FROM Form_Fields__c WHERE Id=:Name ORDER BY Field_Order__c ASC ];
-            field_which_page_changed.Form_Page__c = Form_Page_Id;
-            update field_which_page_changed;
-         }
-        for(Form_Fields__c it: fieldList){
-            if(it.Field_Order__c > Position){
-                if(isold){
-                    System.debug(it.Id);
-                    System.debug(Name);
-                  if(it.Id == Name)  {
-                  
-                    it.Field_Order__c = Position+1;
-                  }
-                  else{
-                    it.Field_Order__c = it.Field_Order__c+1;
-                  }
-                }
-                else{
-                    it.Field_Order__c = it.Field_Order__c+1;
-                }
-             
-               updateList.add(it);
+            Form_Fields__c field = new Form_Fields__c();
+            List<Form_Fields__c> updateList= new List<Form_Fields__c>();
+            
+            List<Form_Fields__c> fieldList=[SELECT Id,Name,Form__c,Form_Page__c,Field_Order__c FROM Form_Fields__c WHERE Form_Page__c=:Form_Page_Id ORDER BY Field_Order__c ASC ];
+            if (Field_Page_Id!='') {
+                Form_Fields__c field_which_page_changed = [SELECT Id,Name,Form__c,Form_Page__c,Field_Order__c FROM Form_Fields__c WHERE Id=:Name ORDER BY Field_Order__c ASC ];
+                field_which_page_changed.Form_Page__c = Form_Page_Id;
+                update field_which_page_changed;
             }
-        }
-        if(!updateList.isEmpty()){
-            update updateList;
-        }
-        if(!isold){
-        string form = [SELECT Mapped_Objects__c from Form__c WHERE Id=:Form_Id].Mapped_Objects__c;
-        List<String> Objects = form.split(',');
-        List<String> label  = Name.split(',');
-        String firstLabel = label[0];
-        System.debug(firstLabel);
-        for (String type : Objects) {
-            Map<String, Schema.SObjectType> schemaMap = Schema.getGlobalDescribe();
-            Schema.SObjectType leadSchema = schemaMap.get(type);
-            Map<String, Schema.SObjectField> fieldMap = leadSchema.getDescribe().fields.getMap();
-            List<String> Fields = new List<String>();
-            for (String fieldName: fieldMap.keySet()) {
-                if (fieldMap.get(fieldName).getDescribe().isUpdateable()){
-                 
-                   if(fieldMap.get(fieldName).getDescribe().getLabel()==firstLabel){
-                    System.debug('##Field API Name='+fieldName);// list of all field API na
-                    System.debug('type:=>'+type);
-                    field.Mapped_Obj__c = type;
-                    field.Field_Mapping__c = fieldName;
-                   }
-              
-                     
+            for (Form_Fields__c it: fieldList) {
+                if (it.Field_Order__c > Position) {
+                    if (isold) {
+                        System.debug(it.Id);
+                        System.debug(Name);
+                        if (it.Id == Name) {
+                            it.Field_Order__c = Position+1;
+                        } else {
+                            it.Field_Order__c = it.Field_Order__c+1;
+                        }
+                    } else {
+                        it.Field_Order__c = it.Field_Order__c+1;
+                    }
+                    updateList.add(it);
                 }
             }
-        }
-        if(Position==0){
-          Form_Fields__c maxPostion =   [SELECT Id,Name,Form__c,Form_Page__c,Field_Order__c FROM Form_Fields__c ORDER BY Field_Order__c DESC LIMIT 1 ];
-          if(maxPostion !=null){
-            Position = maxPostion.Field_Order__c;
-          }  
-        }
-        field.Name= Name;
-        field.Form__c =  Form_Id;
-        field.Form_Page__c = Form_Page_Id;
-        field.Field_Order__c = Position+1;
-      
-        insert field;}        
-       fieldList=[SELECT Id,Name,Form__c,Form_Page__c,Field_Order__c FROM Form_Fields__c WHERE Form__c =: Form_Id ORDER BY Field_Order__c ASC];
-    return fieldList;
-      
+            if (!updateList.isEmpty()) {
+                update updateList;
+            }
+            if (!isold) {
+                string form = [SELECT Mapped_Objects__c from Form__c WHERE Id=:Form_Id].Mapped_Objects__c;
+                List<String> Objects = form.split(',');
+                List<String> label  = Name.split(',');
+                String firstLabel = label[0];
+                System.debug(firstLabel);
+                for (String type : Objects) {
+                    Map<String, Schema.SObjectType> schemaMap = Schema.getGlobalDescribe();
+                    Schema.SObjectType leadSchema = schemaMap.get(type);
+                    Map<String, Schema.SObjectField> fieldMap = leadSchema.getDescribe().fields.getMap();
+                    List<String> Fields = new List<String>();
+                    for (String fieldName: fieldMap.keySet()) {
+                        if (fieldMap.get(fieldName).getDescribe().isUpdateable()) {
+                            if (fieldMap.get(fieldName).getDescribe().getLabel()==firstLabel) {
+                                System.debug('##Field API Name='+fieldName);// list of all field API na
+                                System.debug('type:=>'+type);
+                                field.Mapped_Obj__c = type;
+                                field.Field_Mapping__c = fieldName;
+                            }
+                        }
+                    }
+                }
+                if (Position==0) {
+                    Form_Fields__c maxPostion = [SELECT Id,Name,Form__c,Form_Page__c,Field_Order__c FROM Form_Fields__c ORDER BY Field_Order__c DESC LIMIT 1 ];
+                    if (maxPostion !=null) {
+                        Position = maxPostion.Field_Order__c;
+                    }  
+                }
+                field.Name= Name;
+                field.Form__c =  Form_Id;
+                field.Form_Page__c = Form_Page_Id;
+                field.Field_Order__c = Position+1;
+            
+                insert field;
+            }        
+            fieldList=[SELECT Id,Name,Form__c,Form_Page__c,Field_Order__c FROM Form_Fields__c WHERE Form__c =: Form_Id ORDER BY Field_Order__c ASC];
+            return fieldList;
         
-        //System.debug('5');
-//                      Form_Fields__c field = new Form_Fields__c(Name= 'Account2',Form__c =  'a0B1y00000013pXEAQ',Form_Page__c = 'a091y000004uuFeAAI');
-//                 // field.Name= 'Account2';
-//                 // field.Form__c =  'a0B1y00000013pXEAQ';
-//                 // field.Form_Page__c = 'a091y000004uuFeAAI';
-//                // field.Field_Order__c = 2;
-// insert field1;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
     }
 
-@AuraEnabled
-public static pageWrapper addPageBreak(Id FormId,String Name,String Form_Page_Id,Integer Position,String TargetedFeild){
-try {
-    System.debug('FormId-->>'+FormId);
-    System.debug('Name-->>'+Name);
-    System.debug('Form_Page_Id-->>'+Form_Page_Id);
-    System.debug('Position-->>'+Position);
-    System.debug('TargetedFeild-->>'+TargetedFeild);
+    @AuraEnabled
+    public static pageWrapper addPageBreak(Id FormId, String Name, String Form_Page_Id, Integer Position, String TargetedFeild) {
+        try {
+            System.debug('FormId-->>'+FormId);
+            System.debug('Name-->>'+Name);
+            System.debug('Form_Page_Id-->>'+Form_Page_Id);
+            System.debug('Position-->>'+Position);
+            System.debug('TargetedFeild-->>'+TargetedFeild);
 
-    List<Form_Page__c> allPages= [SELECT id from Form_Page__c WHERE Form__c =:FormId];
-    System.debug('allPages-->>'+allPages);
+            List<Form_Page__c> allPages= [SELECT id from Form_Page__c WHERE Form__c =:FormId];
+            System.debug('allPages-->>'+allPages);
 
-    Integer total_pages = allPages.size();
-    Form_Page__c newFormPage= new Form_Page__c();
-    newFormPage.Form__c = FormId;
-    newFormPage.Name = 'New Form';
-    newFormPage.Page_Number__c = total_pages;
-    insert newFormPage;
-    
-    System.debug(FormId);
-    System.debug('debugsss-->>');
-    System.debug(Name);
-   
+            Integer total_pages = allPages.size();
+            Form_Page__c newFormPage= new Form_Page__c();
+            newFormPage.Form__c = FormId;
+            newFormPage.Name = 'New Form';
+            newFormPage.Page_Number__c = total_pages;
+            insert newFormPage;
+            
+            System.debug(FormId);
+            System.debug('debugsss-->>');
+            System.debug(Name);
+        
 
-    String newId =  [SELECT Id From Form_Page__c where Page_Number__c=: total_pages AND Form__c =: FormId ORDER BY Page_Number__c DESC LIMIT 1].Id;
-    System.debug('newId-->>'+newId);
+            String newId =  [SELECT Id From Form_Page__c where Page_Number__c=: total_pages AND Form__c =: FormId ORDER BY Page_Number__c DESC LIMIT 1].Id;
+            System.debug('newId-->>'+newId);
 
-    if(Position!=0){
-        List<Form_Fields__c> updateList= new List<Form_Fields__c>();
-    List<Form_Fields__c> formFields = [SELECT Id,Name,Form__c,Form_Page__c,Field_Order__c FROM Form_Fields__c WHERE Form_Page__c=:Form_Page_Id ORDER BY Field_Order__c ASC ];
-    for(Form_Fields__c it: formFields){
-     if(it.Field_Order__c>Position){
-        it.Form_Page__c = newId;
-        updateList.add(it);
-     }
+            if(Position!=0){
+                List<Form_Fields__c> updateList= new List<Form_Fields__c>();
+                List<Form_Fields__c> formFields = [SELECT Id,Name,Form__c,Form_Page__c,Field_Order__c FROM Form_Fields__c WHERE Form_Page__c=:Form_Page_Id ORDER BY Field_Order__c ASC ];
+                for (Form_Fields__c it: formFields) {
+                    if (it.Field_Order__c>Position) {
+                        it.Form_Page__c = newId;
+                        updateList.add(it);
+                    }
+                }
+                update updateList;
+
+                formFields=[SELECT Id,Name,Form__c,Form_Page__c,Field_Order__c FROM Form_Fields__c ORDER BY Field_Order__c ASC];
+                pageWrapper pw = new pageWrapper();
+                pw.fieldList = formFields;
+                pw.pageList = [SELECT Id, Name, Page_Number__c FROM Form_Page__c WHERE Form__c=:FormId ORDER BY Page_Number__c ASC];
+                return pw;
+            }
+            return null;
+        } catch (Exception e) {
+            System.debug('Exception-->>'+e.getMessage()+'-->Line--'+e.getLineNumber()+'-->Stack-->'+e.getStackTraceString());
+            throw new AuraHandledException(e.getMessage());
+        }
     }
-    update updateList;
 
-
-    formFields=[SELECT Id,Name,Form__c,Form_Page__c,Field_Order__c FROM Form_Fields__c ORDER BY Field_Order__c ASC];
-    pageWrapper pw = new pageWrapper();
-    pw.fieldList = formFields;
-    pw.pageList = [SELECT Id, Name, Page_Number__c FROM Form_Page__c WHERE Form__c=:FormId ORDER BY Page_Number__c ASC];
-    return pw;
-    
-}
-    return null;
-} catch (Exception e) {
-    System.debug('Exception-->>'+e.getMessage()+'-->Line--'+e.getLineNumber()+'-->Stack-->'+e.getStackTraceString());
-    throw new AuraHandledException(e.getMessage());
-}
-}
-public class pageWrapper{
-@AuraEnabled
-public list<Form_Fields__c> fieldList{get; set;}
-@AuraEnabled
-public list<Form_Page__c> pageList{get; set;}}
+    public class pageWrapper {
+        @AuraEnabled
+        public list<Form_Fields__c> fieldList{get; set;}
+        @AuraEnabled
+        public list<Form_Page__c> pageList{get; set;}
+    }
 
     @AuraEnabled
-    public static String ObjName(String id){
+    public static String ObjName(String id) {
         try {
             Form__c nform = [SELECT Id, Mapped_Objects__c FROM Form__c WHERE Id = :id];
             return nform.Mapped_Objects__c;
@@ -956,19 +942,23 @@ public list<Form_Page__c> pageList{get; set;}}
                         }
                     }
                     cuurentField.Field_Order__c = dropField.Field_Order__c - 1;
+                    cuurentField.Form_Page__c = dropField.Form_Page__c;
                     fieldListToUpdate.add(cuurentField);
-                } else {
+                } else if (cuurentField.Field_Order__c > dropField.Field_Order__c){
                     for (Form_Fields__c ff : fieldList) {
-                        if (ff.Field_Order__c > dropField.Field_Order__c && ff.Field_Order__c < cuurentField.Field_Order__c) {
+                        if (ff.Field_Order__c >= dropField.Field_Order__c && ff.Field_Order__c < cuurentField.Field_Order__c) {
                             ff.Field_Order__c = ff.Field_Order__c + 1;
                             fieldListToUpdate.add(ff);
                         }
                     }
-                    cuurentField.Field_Order__c = dropField.Field_Order__c - 1;
+                    cuurentField.Field_Order__c = dropField.Field_Order__c;
+                    cuurentField.Form_Page__c = dropField.Form_Page__c;
                     fieldListToUpdate.add(cuurentField);    
                 }
 
-                update fieldListToUpdate;
+                if (fieldListToUpdate.size() > 0) {
+                    update fieldListToUpdate;
+                }
                 
             }
             List<Form_Fields__c> latestFieldList = new List<Form_Fields__c>();
@@ -1130,6 +1120,7 @@ public list<Form_Page__c> pageList{get; set;}}
             throw new AuraHandledException(e.getMessage());
         }
     }
+
     @AuraEnabled
     public static string renameMainform(String rename,Id FormId){
         try {
@@ -1141,6 +1132,7 @@ public list<Form_Page__c> pageList{get; set;}}
             throw new AuraHandledException(e.getMessage());
         }
     }
+
     @AuraEnabled
     public static pageWrapper deletePage(Id FormId, Id PageId){
         try {
@@ -1183,6 +1175,7 @@ public list<Form_Page__c> pageList{get; set;}}
             throw new AuraHandledException(e.getMessage());
         }
     }
+
     @AuraEnabled
     public static Form_Page__c pageDetails(Id FormId, Id PageId){
         try {
@@ -1196,19 +1189,19 @@ public list<Form_Page__c> pageList{get; set;}}
     public static string editFormSubmit(String id, String name, String progressIn, String captcha){
         try {
             Form__c editForm =  [SELECT Id, Captcha_Type__c, Progress_Indicator__c, Name FROM Form__c where Id=:id];
-            if(captcha=='None'){
+            if (captcha=='None') {
                 editForm.Captcha_Type__c ='';
+            } else {
+                editForm.Captcha_Type__c = captcha;
             }
-            else{
-            editForm.Captcha_Type__c = captcha;}
-            if(progressIn== 'None'){
+
+            if (progressIn== 'None') {
                 editForm.Progress_Indicator__c = '';
+            } else {
+                editForm.Progress_Indicator__c = progressIn;
             }
-            else{
-            editForm.Progress_Indicator__c = progressIn;}
             editForm.Name = name;
             update editForm;
-            
             return 'saved successfully';
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
