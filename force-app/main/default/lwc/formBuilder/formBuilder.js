@@ -1278,7 +1278,7 @@ export default class FormBuilder extends NavigationMixin(LightningElement) {
                 this.TypeOptions_2 = options_2.sort(
                     (teamA, teamB) => teamA.sr - teamB.sr,
                 )
-                console.log('sort > ', this.TypeOptions_2);
+                console.log('sort > ', JSON.stringify(this.TypeOptions_2));
                 // console.log('TypeOptions_2:- ',this.TypeOptions_2);
 
             } catch (error) {
